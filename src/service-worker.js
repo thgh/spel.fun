@@ -8,14 +8,14 @@ const to_cache = shell.concat(files);
 const cached = new Set(to_cache);
 
 self.addEventListener('install', event => {
-	event.waitUntil(
-		caches
-			.open(ASSETS)
-			.then(cache => cache.addAll(to_cache))
-			.then(() => {
-				self.skipWaiting();
-			})
-	);
+	// event.waitUntil(
+	// 	caches
+	// 		.open(ASSETS)
+	// 		.then(cache => cache.addAll(to_cache))
+	// 		.then(() => {
+	// 			self.skipWaiting();
+	// 		})
+	// );
 });
 
 self.addEventListener('activate', event => {
@@ -32,6 +32,7 @@ self.addEventListener('activate', event => {
 });
 
 self.addEventListener('fetch', event => {
+	return
 	if (event.request.method !== 'GET' || event.request.headers.has('range')) return;
 
 	const url = new URL(event.request.url);

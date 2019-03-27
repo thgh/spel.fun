@@ -1,46 +1,24 @@
 <style>
-	h1, figure, p {
-		text-align: center;
-		margin: 0 auto;
-	}
-
-	h1 {
-		font-size: 2.8em;
-		text-transform: uppercase;
-		font-weight: 700;
-		margin: 0 0 0.5em 0;
-	}
-
-	figure {
-		margin: 0 0 1em 0;
-	}
-
-	img {
-		width: 100%;
-		max-width: 400px;
-		margin: 0 0 1em 0;
-	}
-
-	p {
-		margin: 1em auto;
-	}
-
-	@media (min-width: 480px) {
-		h1 {
-			font-size: 4em;
-		}
-	}
+:global(body) {
+  background: black;
+  color: white;
+}
 </style>
 
 <svelte:head>
 	<title>Sapper project template</title>
 </svelte:head>
 
-<h1>Great success!</h1>
+{#if !$location}
+  Waiting for location
+  <button on:click={setFakeLocation}>Set fake location</button>
+{:else}
+  {JSON.stringify($location)}
+  <Leaflet center={[51.04317474, 3.71724129]} />
+{/if}
 
-<figure>
-	<img alt='Borat' src='great-success.png'>
-	<figcaption>HIGH FIVE!</figcaption>
-</figure>
+<script>
+	import { location, setFakeLocation } from 'src/store/location.js'
 
-<p><strong>Try editing this file (routes/index.html) to test live reloading.</strong></p>
+  import Leaflet from 'src/components/Leaflet.svelte'
+</script>
