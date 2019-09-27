@@ -18,7 +18,11 @@
 {/if}
 
 <script>
-	import { location, setFakeLocation } from 'src/store/location.js'
+  import { room, pass } from 'src/store/room.js'
+  import { location, setFakeLocation } from 'src/store/location.js'
+	import { onMount } from 'svelte'
 
   import Leaflet from 'src/components/Leaflet.svelte'
+
+  onMount(pass(location, room))
 </script>

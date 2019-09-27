@@ -54,8 +54,8 @@ export function setFakeLocation() {
   localStorage.lastLocation = JSON.stringify(data)
   setInterval(() => {
     console.log('update', data.coords.longitude)
-    data.coords.longitude += 0.0001 * Math.random() - 0.00005
-    data.coords.latitude += 0.0001 * Math.random() - 0.00005
+    data.coords.longitude += 0.0002 * Math.random() - 0.0001
+    data.coords.latitude += 0.0002 * Math.random() - 0.0001
     location.set(Object.assign({}, data))
   }, 1000)
 }
