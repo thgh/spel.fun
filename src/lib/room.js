@@ -1,4 +1,4 @@
-import { derive, writable } from 'svelte/store'
+import { derived, writable } from 'svelte/store'
 import { location } from './location.js'
 import { connectableJSON } from 'src/lib/connectable.js'
 

@@ -1,28 +1,12 @@
-<style>
-:global(body) {
-  background: black;
-  color: white;
-}
-</style>
+<div>
+  <a href="/rooms/hello">Hello room</a>
 
-<svelte:head>
-	<title>Sapper project template</title>
-</svelte:head>
+OK
 
-{#if !$location}
-  Waiting for location
-  <button on:click={setFakeLocation}>Set fake location</button>
-{:else}
-  {JSON.stringify($location)}
-  <Leaflet center={[51.04317474, 3.71724129]} />
-{/if}
+</div>
+  <button on:click={toggleFakeLocation}>Set fake location</button>
+
 
 <script>
-  import { room, pass } from 'src/store/room.js'
-  import { location, setFakeLocation } from 'src/store/location.js'
-	import { onMount } from 'svelte'
-
-  import Leaflet from 'src/components/Leaflet.svelte'
-
-  onMount(pass(location, room))
+  import { location, toggleFakeLocation } from 'src/lib/location.js'
 </script>

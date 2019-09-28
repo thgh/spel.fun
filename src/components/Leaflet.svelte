@@ -20,23 +20,31 @@
   }
 </style>
 
-<div bind:this={elem}></div>
+<div bind:this={elem}>
+  <slot />
+</div>
 
 <script>
-  import { onMount } from 'svelte'
+  import { onMount, createEventDispatcher } from 'svelte'
   import { get, writable } from 'svelte/store'
 
   import { leaflet } from 'src/lib/leaflet.js'
-  import { location, locationArray } from 'src/store/location.js'
+  import { location, locationArray } from 'src/lib/location.js'
 
-  export let items = writable([])
+  import { setContext } from 'svelte'
+
+  export let map_ = writable()
   export let center
+
+  const dispatch = createEventDispatcher()
   let elem
+
+  setContext('leaflet', map_)
 
   onMount(async () => {
     await leaflet()
     var mymap = L.map(elem, {
-      center: get(locationArray),
+      center: ($locationArray),
       zoom: 18
     })
     let mymarker
@@ -45,15 +53,11 @@
       attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
     }).addTo(mymap);
     console.log(mymap)
-    locationArray.subscribe(center => {
-      if (!mymarker) {
-        mymarker = L.marker(center)
-        mymarker.addTo(mymap);
-      }
-      mymarker.setLatLng(center)
-    })
-    items.subscribe(items => {
 
-    })
+    mymap.on('click', function(e){
+      dispatch('click', e.latlng)
+    });
+
+    map_.set(mymap)
   })
 </script>
