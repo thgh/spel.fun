@@ -85,11 +85,12 @@ export function extractLocation(obj) {
   if (obj.coords) {
     return extractLocation(obj.coords)
   }
-  if (!obj.latitude) {
+  const out = {
+    lat: obj.latitude || obj.lat,
+    lng: obj.longitude || obj.lng || obj.lon,
+  }
+  if (!out.lat) {
     throw new Error('Invalid location')
   }
-  return {
-    latitude: obj.latitude || obj.lat,
-    longitude: obj.longitude || obj.lng || obj.lon,
-  }
+  return out
 }

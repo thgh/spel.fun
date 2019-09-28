@@ -13,7 +13,11 @@
 <Nav />
 
 <script>
-  import { location, toggleFakeLocation, extractLocation } from 'src/lib/location.js'
+  import {
+    location,
+    toggleFakeLocation,
+    extractLocation,
+  } from 'src/lib/location.js'
   import { stores } from '@sapper/app'
   import { onMount } from 'svelte'
   import { writable } from 'svelte/store'
@@ -33,11 +37,12 @@
 
   onMount(() =>
     location.subscribe(async location => {
-      socket.emit('move', {
-        id: await socket.wait(),
-        room,
-        location: extractLocation(location),
-      })
+      location &&
+        socket.emit('move', {
+          id: await socket.wait(),
+          room,
+          ...extractLocation(location),
+        })
     })
   )
 
@@ -46,7 +51,7 @@
       socket.emit('move', {
         id: socket.id,
         room,
-        location: extractLocation($location),
+        ...extractLocation($location),
       })
     })
 
@@ -73,19 +78,14 @@
       socket.emit('leave', room)
     }
   })
-  function fromLocationArray(latlng) {
-    return {
-      latitude: latlng.lat,
-      longitude: latlng.lng
-    }
-  }
 
   function createItem(evt) {
     const item = {
-      type: 'coin',
-      location: fromLocationArray(evt.detail)
+      json: {
+        type: 'coin',
+      },
+      ...evt.detail,
     }
     socket.emit('createItem', item)
   }
-
 </script>

@@ -10,7 +10,7 @@
   $: setLocation(player)
 
   function setLocation(pl) {
-    const locationArray = toLocationArray(pl)
+    const locationArray = extractLocation(pl)
     if ($ctx && !marker && locationArray) {
       console.log('Player.mount', pl.id)
       marker = L.marker(locationArray)
@@ -26,9 +26,4 @@
       $ctx.removeLayer(marker)
     }
   })
-
-  function toLocationArray(location) {
-    location = extractLocation(location)
-    return location.latitude && [location.latitude, location.longitude]
-  }
 </script>

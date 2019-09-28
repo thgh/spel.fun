@@ -5,6 +5,7 @@ import compression from 'compression'
 import * as sapper from '@sapper/server'
 
 import { extractLocation } from 'src/lib/location'
+import { knex } from '@bothrs/util/knex-env'
 
 const { PORT, NODE_ENV } = process.env
 const dev = NODE_ENV === 'development'
@@ -35,13 +36,14 @@ io.on('connection', socket => {
     socket.leave(room)
   })
   // Player location change
-  socket.on('move', move => {
+  socket.on('move', async move => {
     const left = players.find(p => p.id === socket.id && move.room !== p.room)
     left && socket.leave(left.room)
 
     const current = players.find(p => p.id === socket.id && move.room === p.room)
     if (current) {
-      current.location = extractLocation(move)
+      current.lat = extractLocation(move).lat
+      current.lng = extractLocation(move).lng
       syncPlayers()
       console.log('moved', current.id)
     } else {
@@ -50,7 +52,7 @@ io.on('connection', socket => {
       const player = {
         id: socket.id,
         room: move.room,
-        location: extractLocation(move)
+        ...extractLocation(move)
       }
       players.push(normalize(player))
 
@@ -59,7 +61,10 @@ io.on('connection', socket => {
       syncPlayers()
 
       // Initial sync new player
-      socket.emit('items', items)
+      const items = await knex('items').where({
+        room: move.room
+      })
+      socket.emit('items', items.map(fromDatabase))
     }
     // TODO: validate
     // const ins = await knex('players').insert(player)
@@ -70,9 +75,12 @@ io.on('connection', socket => {
   socket.on('createItem', async item => {
     console.log('createItem', item)
     normalize(item)
-    items.push(item)
+    await knex('items').insert(toDatabase(item))
+    const items = await knex('items').where({
+      room: item.room
+    })
     // socket.to(item.room).emit('item', item)
-    io.in('hello').emit('items', items)
+    io.in('hello').emit('items', items.map(fromDatabase))
   })
 
   socket.on('disconnect', () => {
@@ -99,7 +107,8 @@ import { str62 } from '@bothrs/util/random'
 
 function normalize(obj) {
   obj.id = obj.id || str62(10)
-  obj.location = extractLocation(obj)
+  obj.lat = extractLocation(obj).lat
+  obj.lng = extractLocation(obj).lng
   obj.room = obj.room || 'hello'
   return obj
 }
@@ -140,3 +149,17 @@ function throttle(func, wait, options) {
     return result;
   };
 };
+
+function toDatabase(obj) {
+  return {
+    ...obj,
+    json: JSON.stringify(obj.json || {})
+  }
+}
+
+function fromDatabase(obj) {
+  return {
+    ...obj,
+    json: JSON.parse(obj.json || '{}')
+  }
+}

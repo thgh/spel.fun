@@ -7,8 +7,8 @@
   const ctx = getContext('leaflet')
   let marker
 
-  $: lat = item.location.latitude
-  $: lng = item.location.longitude
+  $: lat = item.lat
+  $: lng = item.lng
   $: icon = item.icon
   $: setLocation(lat, lng)
   $: setIcon(icon)
@@ -34,5 +34,3 @@
     }
   }
 </script>
-
-<div>yo</div>
