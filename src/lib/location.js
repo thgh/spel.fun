@@ -42,6 +42,52 @@ export const location = writable(
 if (process.browser) {
 // setTimeout(toggleFakeLocation, 1000)
 }
+
+export const wander = process.browser ? wanderer(location) : writable()
+
+function wanderer(location) {
+  let interval = 0
+  const wandering = writable(false)
+
+  function toggle() {
+    const val = !get(wandering)
+    wandering.set(val)
+    if (val) {
+      start()
+    } else {
+      stop()
+    }
+  }
+
+  function start() {
+    const current = get(location)
+    const data = {
+      fake: true,
+      coords: {
+        longitude: current ? current.coords.longitude : 3.7697122999999997,
+        latitude: current ? current.coords.latitude : 51.025255099999995
+      }
+    }
+    data.coords.longitude += 0.0002 * Math.random() - 0.0001
+    data.coords.latitude += 0.0002 * Math.random() - 0.0001
+    location.set(data)
+    localStorage.lastLocation = JSON.stringify(data)
+    clearInterval(interval)
+    interval = setInterval(() => {
+      console.log('location.fake', data.coords.longitude)
+      data.coords.longitude += 0.0002 * Math.random() - 0.0001
+      data.coords.latitude += 0.0002 * Math.random() - 0.0001
+      location.set(Object.assign({}, data))
+    }, 1000)
+  }
+
+  function stop() {
+    clearInterval(interval)
+  }
+
+  return { toggle, subscribe: wandering.subscribe }
+}
+
 export function toggleFakeLocation() {
   const current = get(location)
   if (current && current.interval){
