@@ -28,16 +28,21 @@ const io = require('socket.io')(server)
 const players = []
 const items = []
 io.on('connection', socket => {
+  let room
   // Player joins room
   socket.on('join', async room => {})
   // Player leaves room
   socket.on('leave', async room => {
+    players.splice(players.findIndex(p => p.id === socket.id), 1)
     socket.leave(room)
   })
   // Player location change
   socket.on('move', async move => {
     const left = players.find(p => p.id === socket.id && move.room !== p.room)
-    left && socket.leave(left.room)
+
+    if (left) {
+      await leaveRoom(socket, left)
+    }
 
     const current = players.find(
       p => p.id === socket.id && move.room === p.room
@@ -47,25 +52,53 @@ io.on('connection', socket => {
       current.lng = extractLocation(move).lng
       syncPlayers()
       console.log('moved', current.id)
-    } else {
-      console.log('join', move.room, move)
-      socket.join(move.room)
-      const player = {
-        id: socket.id,
-        room: move.room,
-        ...extractLocation(move),
-      }
-      players.push(normalize(player))
-
-      // Update other players
-      // socket.to(player.room).emit('player', player)
-      syncPlayers()
 
       // Initial sync new player
       const items = await knex('items').where({
         room: move.room,
+      // Detect collisions
+      const items = await knex('items')
+        .where('room', current.room)
+        .whereNull('found_at')
+      const foundIds = items
+        .filter(item => distance(item, current) < 0.03)
+        .map(item => item.id)
+      if (foundIds.length) {
+        const ok = await knex('items')
+          .where('room', current.room)
+          .whereNull('found_at')
+          .whereNull('found_by')
+          .whereIn('id', foundIds)
+          .update({
+            found_at: Date.now(),
+            found_by: current.id,
+          })
+        socket.emit('foundItems', ok)
+        const items = await knex('items')
+          .where('room', current.room)
+          .whereNull('found_at')
+        socket.emit('items', items.map(fromDatabase))
+      }
+    } else if (move.room) {
+      socket.join(move.room, async () => {
+        console.log('join', move.room, socket.rooms)
+        const player = {
+          id: socket.id,
+          room: move.room,
+          ...extractLocation(move),
+        }
+        players.push(normalize(player))
+
+        // Update other players
+        // socket.to(player.room).emit('player', player)
+        syncPlayers()
+
+        // Initial sync new player
+        const items = await knex('items')
+          .where('room', move.room)
+          .whereNull('found_at')
+        socket.emit('items', items.map(fromDatabase))
       })
-      socket.emit('items', items.map(fromDatabase))
     }
     // TODO: validate
     // const ins = await knex('players').insert(player)
@@ -77,9 +110,9 @@ io.on('connection', socket => {
     console.log('createItem', item)
     normalize(item)
     await knex('items').insert(toDatabase(item))
-    let items = await knex('items').where({
-      room: item.room,
-    })
+    const items = await knex('items')
+      .where('room', item.room)
+      .whereNull('found_at')
     // socket.to(item.room).emit('item', item)
     io.in('hello').emit('items', items.map(fromDatabase))
 
@@ -93,7 +126,7 @@ io.on('connection', socket => {
           .where('id', item.id)
           .del()
           .then(async () => {
-            items = await knex('items').where({
+            const items = await knex('items').where({
               room: item.room,
             })
             console.log('items.length emittnig', items.length);
@@ -101,6 +134,21 @@ io.on('connection', socket => {
           })
       }, BOMB_FUSE_TIME)
     }
+  })
+
+  // Player moves item
+  socket.on('moveItem', async ({ id, lat, lng }) => {
+    console.log('moveItem', socket.rooms)
+    const ok = await knex('items')
+      .where({ id })
+      .update(toDatabase({ lat, lng }))
+    const items = await knex('items')
+      .where('room', getRoom(socket))
+      .whereNull('found_at')
+    // socket.to(item.room).emit('item', item)
+    io.in('hello').emit('items', items.map(fromDatabase))
+
+    // Detect collisions?
   })
 
   socket.on('disconnect', () => {
@@ -111,6 +159,8 @@ io.on('connection', socket => {
 
 const syncPlayers = throttle(() => {
   io.in('hello').emit('players', players)
+
+  // Detect collisions?
 }, 1000)
 
 // async function emitSet(socket, room) {
@@ -172,7 +222,14 @@ function throttle(func, wait, options) {
   }
 }
 
+function getRoom(socket) {
+  return Object.keys(socket.rooms).find(item => item !== socket.id)
+}
+
 function toDatabase(obj) {
+  if (!obj.json) {
+    return obj
+  }
   return {
     ...obj,
     json: JSON.stringify(obj.json || {}),
@@ -180,8 +237,41 @@ function toDatabase(obj) {
 }
 
 function fromDatabase(obj) {
+  if (!obj.json) {
+    return obj
+  }
   return {
     ...obj,
     json: JSON.parse(obj.json || '{}'),
   }
+}
+
+function distance(a, b) {
+  const { lat: lat1, lng: lon1 } = a
+  const { lat: lat2, lng: lon2 } = b
+  var R = 6371 // Radius of the earth in km
+  var dLat = deg2rad(lat2 - lat1) // deg2rad below
+  var dLon = deg2rad(lon2 - lon1)
+  var a =
+    Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+    Math.cos(deg2rad(lat1)) *
+      Math.cos(deg2rad(lat2)) *
+      Math.sin(dLon / 2) *
+      Math.sin(dLon / 2)
+  var c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a))
+  var d = R * c // Distance in km
+  return d
+}
+function deg2rad(v) {
+  return (v * Math.PI) / 180
+}
+
+
+function leaveRoom(socket, left) {
+  return new Promise(res => {
+    const index = players.findIndex(p => p.id === socket.id)
+    if (index >= 0) players.splice(index, 1)
+    
+    socket.leave(left.room, res)
+  })
 }
