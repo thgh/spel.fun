@@ -1,0 +1,2 @@
+export const BOMB_FUSE_TIME = 2000
+export const BOMB_EXPLOSION_RADIUS = 200

@@ -9,6 +9,7 @@
 <p>
 {JSON.stringify($location)}
 </p>
+<button bind:this={bombButton} class="btn-bomb" on:click={(e) => createItem(e, {type: 'bomb', icon:'/bomb.png'}, extractLocation($location))}>Bomb</button>
 
 <Nav />
 
@@ -32,6 +33,8 @@
   const players = writable([])
   const items = writable([])
   const { page } = stores()
+
+  let bombButton
 
   $: room = $page.params.room
 
@@ -72,20 +75,44 @@
 
     socket.on('items', function(list) {
       items.set(list)
-      // console.log('received items', list)
+      console.log('received items', list)
     })
+
+    socket.on('explosion', function(bomb) {
+      console.log('bomb exploded', bomb)
+      const copy = $items
+      const idx = copy.findIndex(i => i.id === bomb.id)
+      copy[idx].json.explode = true
+      items.set(copy)
+      // update bomb icon to circles
+      console.log('bam', $items[idx]);
+    })
+
     return () => {
       socket.emit('leave', room)
     }
   })
 
-  function createItem(evt) {
+
+  function createItem(evt, json = {}, fields = {}) {
     const item = {
       json: {
-        type: 'coin',
+        ...json,
+        type: json.type || 'coin',
       },
+      ...fields,
       ...evt.detail,
     }
     socket.emit('createItem', item)
   }
 </script>
+
+<style>
+  .btn-bomb {
+    position: fixed;
+    bottom: 1em;
+    right: 1em;
+    font-weight: 300;
+    padding: 1em;
+  }
+</style>
