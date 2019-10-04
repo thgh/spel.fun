@@ -16,7 +16,7 @@
   }
   :global(.leaflet-shadow-pane > *),
   :global(.leaflet-marker-pane > *) {
-    transition: transform .3s linear;
+    /*transition: transform .3s linear;*/
   }
 </style>
 
@@ -45,11 +45,13 @@
     await leaflet()
     var mymap = L.map(elem, {
       center: ($locationArray),
-      zoom: 18
+      zoom: 18,
+      zoomSnap: 2
     })
     let mymarker
     L.tileLayer('https://tiles.wmflabs.org/bw-mapnik/{z}/{x}/{y}.png', {
       maxZoom: 18,
+      minZoom: 16,
       attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
     }).addTo(mymap);
     console.log(mymap)

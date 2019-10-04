@@ -1,29 +1,33 @@
 <script>
   import { extractLocation } from 'src/lib/location'
-  import { getContext, onDestroy } from 'svelte'
+  import { getContext, onMount } from 'svelte'
 
   export let player
 
   const ctx = getContext('leaflet')
   let marker
 
-  $: setLocation(player)
+  $: lat = player.lat
+  $: lng = player.lng
+  $: setLocation(lat, lng)
 
-  function setLocation(pl) {
-    const locationArray = extractLocation(pl)
-    if ($ctx && !marker && locationArray) {
-      console.log('Player.mount', pl.id)
-      marker = L.marker(locationArray)
-      marker.addTo($ctx);
-    } else if (marker) {
-      console.log('Player.move', pl.id)
-      marker.setLatLng(locationArray)
-    }
-  }
-
-  onDestroy(() => {
-    if (marker) {
-      $ctx.removeLayer(marker)
+  onMount(() => {
+    setLocation(lat, lng)
+    return () => {
+      if (marker) {
+        $ctx.removeLayer(marker)
+      }
     }
   })
+
+  function setLocation(lat, lng) {
+    if ($ctx && !marker) {
+      console.log('Player.mount', player.id)
+      marker = L.marker([lat, lng])
+      marker.addTo($ctx);
+    } else if (marker) {
+      // console.log('Player.move', pl.id)
+      marker.setLatLng([lat, lng])
+    }
+  }
 </script>
