@@ -26,6 +26,7 @@
   import Leaflet from 'src/components/Leaflet.svelte'
   import Player from 'src/components/Player.svelte'
   import Item from 'src/components/Item.svelte'
+  import Nav from 'src/components/Nav.svelte'
 
   import { socket } from 'src/lib/socket.io'
   import { play } from 'src/lib/sound'
